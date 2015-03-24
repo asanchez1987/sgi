@@ -19,34 +19,54 @@
 <script id="shader-vs" type="x-shader/x-vertex">
     attribute vec3 aVertexPosition;
     varying vec4 vColor;
+	uniform vec2 uDespl;
 
     void main(void) {
         gl_Position = vec4(aVertexPosition, 1.0);
         // Convert from clipspace to colorspace.
         // Clipspace goes -1.0 to +1.0
         // Colorspace goes from 0.0 to 1.0
-        vColor.r = gl_Position.x * 0.5 + 0.5; 
+        vColor.r = gl_Position.x * 0.5 + 0.5;
     }
 </script>
 
 
 <script type="text/javascript">
 
+	var mousePos;
+    var CurrentPos;
+    var mouseDown = false;
+    var gl;
+
     function webGLStart() {
         var canvas = document.getElementById("lesson01-canvas");
         initGL(canvas);
-        initShaders();
-        initBuffers();
 
+		canvas.addEventListener('mousedown', function(evt) {
+	      mousePos = getMousePos(canvas, evt);
+	      mouseDown = true;
+	    }, false);
+	
+	    canvas.addEventListener('mousemove', function(evt) {
+	    	if (!mouseDown) {
+		  		return;
+		  	}
+	        CurrentPos = getMousePos(canvas, evt);
+			drawScene();
+	    }, false);
+
+		canvas.addEventListener('mouseup', function(evt) {
+	      mouseDown = false; 
+	    }, false);
+
+		initShaders();
+        initBuffers();
         gl.clearColor(0.6, 0.6, 1.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
 
         drawScene();
     }
 
-
-
-    var gl;
     function initGL(canvas) {
         try {
             gl = canvas.getContext("experimental-webgl");
@@ -59,7 +79,18 @@
         }
     }
 
+	
 
+    function getMousePos(canvas, evt) {
+      var rect = canvas.getBoundingClientRect();
+      return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+      };
+    }
+
+    
+    
     function getShader(gl, id) {
         var shaderScript = document.getElementById(id);
         if (!shaderScript) {
@@ -115,6 +146,8 @@
 
         shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
         gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+	 
+		//shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
     }
 
 
