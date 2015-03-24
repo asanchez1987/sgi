@@ -1,0 +1,224 @@
+<html>
+
+<head>
+<title>Learning WebGL &mdash; lesson 1</title>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+<script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+
+<script id="shader-fs" type="x-shader/x-fragment"> // Los scripts hay que indicarles de qué tipo son, porque esto es GLSL
+	// Sintaxis similar a c++
+	// Pero tiene pijotadas con los tipos, las matrices, etc.
+
+    precision mediump float; // No es obligatorio pero si recomendable para no tener problemas de precision
+
+    void main(void) {
+		// Fragment shader mas sencillo de la historia
+		// Para cada fragmento que le lanzo a pintar le asigno un color a mano directamente
+		// gl_FragColor es una variable de salida built-int y es obligatorio asignarle un valor
+		// vec4 es un tipo array de 4 floats
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    }
+</script>
+
+<script id="shader-vs" type="x-shader/x-vertex"> // Vertex Shader
+	// Hay que definir un atributo que sean las coordenadas del vertice
+	// Esto no esta built-in pero siempre hay que definir una variable de tipo attribute
+	// Este aVertexPosition es el nombre que usaremos en getAttribLocation por ejemplo
+    attribute vec3 aVertexPosition;
+
+    void main(void) {
+		// Asignamos a la variable gl_Position el valor de un vector de 4 floats que lo inicializo con la posicion que me llega
+		// El 1 es para indicar coordenadas homogeneas
+		// Aparentemente no hace nada, pero si no lo hacemos no ser vería nada
+		// Si quisieramos hacer una rotacion lo hariamos aqui
+		// Si quisieramos hacer una transformacion de camara tambien aqui
+        gl_Position = vec4(aVertexPosition, 1.0);
+    }
+</script>
+
+
+<script type="text/javascript">
+
+    function webGLStart() {
+        var canvas = document.getElementById("lesson01-canvas");
+        initGL(canvas);
+        initShaders();
+        initBuffers();
+
+        gl.clearColor(0.6, 0.6, 1.0, 1.0);
+        gl.enable(gl.DEPTH_TEST);
+
+        drawScene();
+    }
+
+
+
+    var gl;
+    function initGL(canvas) {
+        try {
+			// gl pasa a ser de tipo contexto de webgl
+            gl = canvas.getContext("experimental-webgl"); // quiza con webgl solo ya va
+
+			// al contexto de gl le añado una variable de tipo viewportWidth
+			// cuidado con escribir bien los identificadores de las variables
+            gl.viewportWidth = canvas.width;
+            gl.viewportHeight = canvas.height;
+        } catch (e) {
+        }
+        if (!gl) {
+            alert("Could not initialise WebGL, sorry :-(");
+        }
+    }
+
+
+    function getShader(gl, id) { // Esto ni mirarlo, pero esto no es mas que un parser
+		// al final te genera un string
+        var shaderScript = document.getElementById(id);
+        if (!shaderScript) {
+            return null;
+        }
+
+        var str = "";
+        var k = shaderScript.firstChild;
+        while (k) {
+            if (k.nodeType == 3) {
+                str += k.textContent;
+            }
+            k = k.nextSibling;
+        }
+
+        var shader;
+        if (shaderScript.type == "x-shader/x-fragment") {
+            shader = gl.createShader(gl.FRAGMENT_SHADER);
+        } else if (shaderScript.type == "x-shader/x-vertex") {
+            shader = gl.createShader(gl.VERTEX_SHADER);
+        } else {
+            return null;
+        }
+
+        gl.shaderSource(shader, str);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert(gl.getShaderInfoLog(shader));
+            return null;
+        }
+
+        return shader;
+    }
+
+
+    var shaderProgram;
+
+    function initShaders() { // Normalmente la reutilizaremos y no la tocamos
+
+        var fragmentShader = getShader(gl, "shader-fs");
+        var vertexShader = getShader(gl, "shader-vs");
+
+		// Creo un programa
+        shaderProgram = gl.createProgram();
+
+		// Le asocio los shaders
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+
+		// Linko
+        gl.linkProgram(shaderProgram);
+
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            alert("Could not initialise shaders");
+        }
+
+        gl.useProgram(shaderProgram);
+
+		// Cualquier variable que se asigna a un vertice es un atributo
+		// Dame la posición donde esta esto
+        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+		// Activar el vertexPositionAttribute que acabo de crear
+        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+		// Programa en CPU
+		// Vertex y fragment shader en la GPU
+		// Al vertex shader le llega cada vez un vertice del buffer
+    }
+
+
+    var triangleVertexPositionBuffer;
+    var squareVertexPositionBuffer;
+
+    function initBuffers() {
+        triangleVertexPositionBuffer = gl.createBuffer(); // Me devuelve un identificador para el buffer
+        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer); // Es una forma de activar el buffer
+        /*var vertices = [
+             -1.0,  1.0,  0.0,
+            -1.0, -1.0,  0.0,
+             0.0, -1.0,  0.0
+        ];*/
+        var vertices = [ // esto esta en la cpu
+             -0.4,  0.2,  0.0,
+              0.0,  0.8,  0.0,
+              0.4,  0.2,  0.0
+        ];
+		// el ultimo parametro es para tema de performance, mi intencion es que las componentes de los vertices seran estaticas
+		// esto se lo indico a la gpu para que haga el mejor uso de los datos para performance
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW); // con esto vuelco el vertice en el buffer 
+
+        triangleVertexPositionBuffer.itemSize = 3; // cada vertice tiene 3 componentes
+        triangleVertexPositionBuffer.numItems = 3; // mi triangulo tiene 3 vertices
+
+        squareVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+        /*vertices = [
+             0.0,  1.0,  0.0,
+            0.0,  -1.0,  0.0,
+             1.0, 1.0,  0.0,
+            1.0, -1.0,  0.0
+        ];*/
+
+        vertices = [
+             0.2,  0.0,  0.0,
+             0.2, -0.4,  0.0,
+             -0.2,  0.0,  0.0,
+            -0.2, -0.4,  0.0
+        ];
+
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        squareVertexPositionBuffer.itemSize = 3;
+        squareVertexPositionBuffer.numItems = 4;
+    }
+
+
+    function drawScene() {
+		// En que pixel empieza mi viewport y que anchura y altura tiene
+        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+		// los dos 0 del final uno es el offset de donde empieza el buffer y el otro indica el offset que hay entre valores
+		// Uno podria guardarse: {coordenadas de vertice, color}, {coordenadas de vertice, color}
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+
+		// En cada momento solo tengo un buffer activo, el ultimo que se habia activado
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+    }
+
+
+
+
+</script>
+
+
+</head>
+
+
+<body onload="webGLStart();">
+    
+    <canvas id="lesson01-canvas" style="border: none;" width="500" height="500"></canvas>
+
+</body>
+
+</html>

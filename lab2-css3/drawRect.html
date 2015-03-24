@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <style>
+      body {
+        margin: 0px;
+        padding: 0px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="myCanvas" style="border: 10px solid #c3c3c3;" width="578" height="200"></canvas>
+    <script>
+
+      var mousePos;
+      var draw = false;
+      function writeMessage(canvas, message) {
+        var context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.font = '18pt Calibri';
+        context.fillStyle = 'black';
+        context.fillText(message, 10, 25);
+      }
+      function getMousePos(canvas, evt) {
+        var rect = canvas.getBoundingClientRect();
+        return {
+          x: evt.clientX - rect.left,
+          y: evt.clientY - rect.top
+        };
+      }
+      var canvas = document.getElementById('myCanvas');
+      var context = canvas.getContext('2d');
+
+      canvas.addEventListener('mousedown', function(evt) {
+        mousePos = getMousePos(canvas, evt);
+        draw = true;
+        //var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
+        //writeMessage(canvas, message);
+      }, false);
+
+      canvas.addEventListener('mousemove', function(evt) {
+        if (draw == true) {
+            var finiPos = getMousePos(canvas, evt);
+            context.clearRect(0,0,canvas.width,canvas.height);
+            context.strokeRect(mousePos.x,mousePos.y,finiPos.x - mousePos.x,finiPos.y - mousePos.y);
+        }
+      }, false);
+
+      canvas.addEventListener('mouseup', function(evt) {
+        draw = false; 
+      }, false);
+
+    </script>
+  </body>
+</html>
