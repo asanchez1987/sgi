@@ -45,6 +45,7 @@
 		canvas.addEventListener('mousedown', function(evt) {
 	      mousePos = getMousePos(canvas, evt);
 	      mouseDown = true;
+		  console.log("mousePos.x: " + mousePos.x + " and mousePos.y: " + mousePos.y);
 	    }, false);
 	
 	    canvas.addEventListener('mousemove', function(evt) {
