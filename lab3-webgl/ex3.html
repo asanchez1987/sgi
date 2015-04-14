@@ -46,6 +46,7 @@
 	      mousePos = getMousePos(canvas, evt);
 	      mouseDown = true;
 		  console.log("mousePos.x: " + mousePos.x + " and mousePos.y: " + mousePos.y);
+		  drawScene();
 	    }, false);
 	
 	    canvas.addEventListener('mousemove', function(evt) {
@@ -53,7 +54,7 @@
 		  		return;
 		  	}
 	        CurrentPos = getMousePos(canvas, evt);
-			drawScene();
+			//drawScene();
 	    }, false);
 
 		canvas.addEventListener('mouseup', function(evt) {
